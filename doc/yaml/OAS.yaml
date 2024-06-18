@@ -1,0 +1,356 @@
+swagger: '2.0'
+info:
+  title: Your API Title
+  description: Description of your API
+  version: 1.0.0
+basePath: /api
+
+paths:
+  /register:
+    post:
+      summary: Register a new user
+      description: Registers a new user with optional company and admin privileges.
+      parameters:
+        - in: body
+          name: user
+          description: User registration details
+          required: true
+          schema:
+            type: object
+            properties:
+              username:
+                type: string
+              email:
+                type: string
+              password:
+                type: string
+              isAdmin:
+                type: boolean
+              company:
+                type: string
+              companyAuthCode:
+                type: string
+      responses:
+        '201':
+          description: User registered successfully
+        '400':
+          description: Invalid input data or user already exists
+        '500':
+          description: Server error
+
+  /login:
+    post:
+      summary: Login a user
+      description: Authenticates a user and returns a JWT token.
+      parameters:
+        - in: body
+          name: credentials
+          description: User credentials for login
+          required: true
+          schema:
+            type: object
+            properties:
+              email:
+                type: string
+              password:
+                type: string
+      responses:
+        '200':
+          description: Login successful, returns JWT token
+          schema:
+            type: object
+            properties:
+              token:
+                type: string
+        '400':
+          description: Invalid credentials
+        '500':
+          description: Server error
+
+  /user:
+    get:
+      summary: Get user details
+      description: Retrieves details of the authenticated user.
+      security:
+        - apiKey: []
+      responses:
+        '200':
+          description: User details retrieved successfully
+          schema:
+            type: object
+            properties:
+              _id:
+                type: string
+              username:
+                type: string
+              email:
+                type: string
+              isAdmin:
+                type: boolean
+              company:
+                type: string
+        '401':
+          description: Unauthorized, invalid or missing token
+        '500':
+          description: Server error
+
+  /posts:
+    get:
+      summary: Get all posts
+      description: Retrieves all posts sorted by most recent
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Post'
+        '500':
+          description: Server error
+
+    post:
+      summary: Create a new post
+      description: Creates a new post with optional image upload
+      parameters:
+        - in: formData
+          name: image
+          type: file
+          description: The image file for the post (optional)
+        - in: body
+          name: post
+          description: Post details
+          required: true
+          schema:
+            $ref: '#/definitions/PostRequest'
+      responses:
+        '201':
+          description: Post created successfully
+          schema:
+            $ref: '#/definitions/Post'
+        '400':
+          description: Invalid input data or missing fields
+        '500':
+          description: Server error
+
+  /posts/{id}:
+    get:
+      summary: Get a post by ID
+      description: Retrieves a post by its unique identifier
+      parameters:
+        - in: path
+          name: id
+          required: true
+          type: string
+          description: ID of the post to retrieve
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/Post'
+        '404':
+          description: Post not found
+        '500':
+          description: Server error
+
+    put:
+      summary: Update a post
+      description: Updates an existing post by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          type: string
+          description: ID of the post to update
+        - in: body
+          name: post
+          description: Updated post details
+          required: true
+          schema:
+            $ref: '#/definitions/PostRequest'
+      responses:
+        '200':
+          description: Post updated successfully
+          schema:
+            $ref: '#/definitions/Post'
+        '400':
+          description: Invalid input data or missing fields
+        '401':
+          description: User not authorized
+        '404':
+          description: Post not found
+        '500':
+          description: Server error
+
+    delete:
+      summary: Delete a post
+      description: Deletes a post by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          type: string
+          description: ID of the post to delete
+      responses:
+        '200':
+          description: Post deleted successfully
+        '401':
+          description: User not authorized
+        '404':
+          description: Post not found
+        '500':
+          description: Server error
+
+  /posts/{id}/comments:
+    post:
+      summary: Add a comment to a post
+      description: Adds a new comment to a post
+      parameters:
+        - in: path
+          name: id
+          required: true
+          type: string
+          description: ID of the post to add a comment to
+        - in: body
+          name: comment
+          description: Comment text
+          required: true
+          schema:
+            $ref: '#/definitions/CommentRequest'
+      responses:
+        '200':
+          description: Comment added successfully
+          schema:
+            $ref: '#/definitions/Comment'
+        '400':
+          description: Invalid input data or missing fields
+        '404':
+          description: Post not found
+        '500':
+          description: Server error
+
+  /posts/{id}/comments/{comment_id}:
+    delete:
+      summary: Delete a comment from a post
+      description: Deletes a comment from a post
+      parameters:
+        - in: path
+          name: id
+          required: true
+          type: string
+          description: ID of the post containing the comment
+        - in: path
+          name: comment_id
+          required: true
+          type: string
+          description: ID of the comment to delete
+      responses:
+        '200':
+          description: Comment deleted successfully
+        '401':
+          description: User not authorized
+        '404':
+          description: Post or comment not found
+        '500':
+          description: Server error
+
+  /posts/{id}/like:
+    put:
+      summary: Like a post
+      description: Adds a like to a post
+      parameters:
+        - in: path
+          name: id
+          required: true
+          type: string
+          description: ID of the post to like
+      responses:
+        '200':
+          description: Like added successfully
+          schema:
+            type: array
+            items:
+              type: string
+        '400':
+          description: Post already liked
+        '404':
+          description: Post not found
+        '500':
+          description: Server error
+
+definitions:
+  User:
+    type: object
+    properties:
+      _id:
+        type: string
+      username:
+        type: string
+      email:
+        type: string
+      isAdmin:
+        type: boolean
+      company:
+        type: string
+    required:
+      - _id
+      - username
+      - email
+      - isAdmin
+
+  Post:
+    type: object
+    properties:
+      _id:
+        type: string
+      title:
+        type: string
+      content:
+        type: string
+      image:
+        type: string
+      author:
+        type: string
+      likes:
+        type: array
+        items:
+          type: string
+      comments:
+        type: array
+        items:
+          $ref: '#/definitions/Comment'
+    required:
+      - title
+      - content
+      - author
+
+  Comment:
+    type: object
+    properties:
+      _id:
+        type: string
+      user:
+        type: string
+      text:
+        type: string
+    required:
+      - user
+      - text
+
+  PostRequest:
+    type: object
+    properties:
+      title:
+        type: string
+      content:
+        type: string
+    required:
+      - title
+      - content
+
+  CommentRequest:
+    type: object
+    properties:
+      text:
+        type: string
+    required:
+      - text

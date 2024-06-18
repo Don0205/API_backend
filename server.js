@@ -9,7 +9,7 @@ const privateRoute = require('./routes/private');
 const postRoute = require('./routes/posts');
 
 
-
+const serve = require('koa-static-folder');
 
 dotenv.config();
 
@@ -42,6 +42,9 @@ mongoose.connect(process.env.MONGO_URI, {
 app.get('/', (req, res) => {
     res.send('Hello, this is a secure REST API!');
 });
+
+
+app.use(serve('./doc'));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

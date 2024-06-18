@@ -256,4 +256,31 @@ router.put('/like/:id', auth, async (req, res) => {
     }
 });
 
+// Dislike a post
+router.put('/dislike/:id', auth, async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.id);
+
+        if (!post) {
+            return res.status(404).json({ msg: 'Post not found' });
+        }
+
+        // Check if the post has already been liked by this user
+        if (!post.likes.some(like => like.toString() === req.user.id)) {
+            return res.status(400).json({ msg: 'Post has not yet been liked' });
+        }
+
+        // Remove the user's ID from the likes array
+        post.likes = post.likes.filter(like => like.toString() !== req.user.id);
+
+        await post.save();
+
+        res.json(post.likes);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+
 module.exports = router;

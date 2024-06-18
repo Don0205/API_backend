@@ -9,6 +9,8 @@ const privateRoute = require('./routes/private');
 const postRoute = require('./routes/posts');
 
 
+
+
 dotenv.config();
 
 const app = express();
@@ -16,13 +18,17 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(helmet());
-app.use(cors());
+
+const corsOptions = {
+  origin: 'http://localhost:3000', // Adjust this to match your frontend URL
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 
 app.use('/api/auth', authRoute);
 app.use('/api/private', privateRoute);
 app.use('/api/posts', postRoute);
-
-
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI, {

@@ -6,38 +6,64 @@ const auth = require('../middleware/auth');
 const Post = require('../modles/Post');
 const router = express.Router();
 
+//const upload = require('../middleware/upload'); // Import multer configuration
+const multer = require('multer');
+const path = require('path');
+
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'uploads/'); // Destination folder for uploads
+    },
+    filename: function (req, file, cb) {
+        cb(null, Date.now() + '-' + file.originalname); // Unique filename
+    }
+});
+
+function fileFilter(req, file, cb) {
+    if (file.mimetype.startsWith('image/')) {
+        cb(null, true);
+    } else {
+        cb(new Error('Only image files are allowed!'), false);
+    }
+}
+
+// Initialize multer instance
+const upload = multer({ storage: storage, fileFilter: fileFilter });
+
+
 // Create a new post
 router.post(
     '/',
+    upload.single('image'), // Handle single file upload named 'image'
     [
         auth,
         [
             check('title', 'Title is required').not().isEmpty(),
-            check('content', 'Content is required').not().isEmpty()
+            check('content', 'Content is required').not().isEmpty(),
+            check('company', 'Company is required').not().isEmpty()
         ]
     ],
     async (req, res) => {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
-
-        const { title, content, image, company } = req.body;
-
         try {
+            const { title, content, company } = req.body;
+
+            if (!title || !content || !company) {
+                return res.status(400).json({ msg: 'Title, content, and company are required' });
+            }
+
             const newPost = new Post({
                 title,
                 content,
-                image,
-                author: req.user.id,
-                company
+                image: req.file ? req.file.path : '', // Save file path in MongoDB if file was uploaded
+                company,
+                author: req.user.id
             });
 
-            const post = await newPost.save();
-            res.json(post);
+            const savedPost = await newPost.save();
+            res.status(201).json(savedPost);
         } catch (err) {
             console.error(err.message);
-            res.status(500).send('Server Error');
+            res.status(500).json({ msg: 'Server error' });
         }
     }
 );
@@ -200,6 +226,30 @@ router.delete('/comment/:id/:comment_id', auth, async (req, res) => {
         await post.save();
 
         res.json(post.comments);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// Add a like to a post
+router.put('/like/:id', auth, async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.id);
+
+        if (!post) {
+            return res.status(404).json({ msg: 'Post not found' });
+        }
+
+        // Check if the post has already been liked by this user
+        if (post.likes.some(like => like.toString() === req.user.id)) {
+            return res.status(400).json({ msg: 'Post already liked' });
+        }
+
+        post.likes.unshift(req.user.id);
+        await post.save();
+
+        res.json(post.likes);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
